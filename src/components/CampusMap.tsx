@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { blink } from '../blink/client'
 import { Building, OnlineUser } from '../types/campus'
 import { Card } from './ui/card'
@@ -52,7 +52,8 @@ export function CampusMap({ currentUser, userStatus: propUserStatus, onStatusCha
     }, 5000)
 
     return () => clearInterval(interval)
-  }, [loadOnlineUsers])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Intentionally empty - we want this to run only once on mount
 
   const loadBuildings = async () => {
     try {
@@ -179,7 +180,7 @@ export function CampusMap({ currentUser, userStatus: propUserStatus, onStatusCha
     }
   }
 
-  const loadOnlineUsers = useCallback(async () => {
+  const loadOnlineUsers = async () => {
     try {
       // Add some demo users for better experience
       const demoUsers: OnlineUser[] = [
@@ -249,7 +250,7 @@ export function CampusMap({ currentUser, userStatus: propUserStatus, onStatusCha
       ]
       setOnlineUsers(fallbackUsers)
     }
-  }, [currentUser])
+  }
 
   const handleBuildingClick = async (building: Building) => {
     setSelectedBuilding(building)
