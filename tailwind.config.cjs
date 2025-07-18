@@ -13,6 +13,8 @@ module.exports = {
   			ring: 'hsl(var(--ring))',
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
+  			'berkeley-blue': 'hsl(var(--berkeley-blue))',
+  			'california-gold': 'hsl(var(--california-gold))',
   			primary: {
   				'50': '#f0f9ff',
   				'100': '#e0f2fe',
