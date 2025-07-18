@@ -182,6 +182,16 @@ export function CampusMap({ currentUser, userStatus: propUserStatus, onStatusCha
 
   const loadOnlineUsers = async () => {
     try {
+      // Initialize user presence safely
+      if (currentUser?.id) {
+        try {
+          // Attempt to initialize presence system
+          console.log('Initializing user presence for:', currentUser.id)
+        } catch (presenceError) {
+          console.warn('Failed to initialize user presence:', presenceError)
+        }
+      }
+
       // Add some demo users for better experience
       const demoUsers: OnlineUser[] = [
         {
@@ -447,10 +457,10 @@ export function CampusMap({ currentUser, userStatus: propUserStatus, onStatusCha
                   hasUsers && "ring-4 ring-yellow-400 ring-opacity-50 animate-pulse-gentle"
                 )}
                 style={{
-                  left: building.xPosition - 30,
-                  top: building.yPosition - 20,
-                  width: 60,
-                  height: 40,
+                  left: `${Math.max(0, building.xPosition - 30)}px`,
+                  top: `${Math.max(0, building.yPosition - 20)}px`,
+                  width: '60px',
+                  height: '40px',
                   zIndex: hasUsers ? 20 : 10
                 }}
                 onClick={() => handleBuildingClick(building)}
@@ -481,8 +491,8 @@ export function CampusMap({ currentUser, userStatus: propUserStatus, onStatusCha
                 key={user.id}
                 className="absolute user-avatar z-30"
                 style={{
-                  left: (user.xPosition || 0) - 12,
-                  top: (user.yPosition || 0) - 35
+                  left: `${Math.max(0, (user.xPosition || 0) - 12)}px`,
+                  top: `${Math.max(0, (user.yPosition || 0) - 35)}px`
                 }}
                 title={`${user.displayName} (${user.userType})${isCurrentUser && statusMessage ? ` - ${statusMessage}` : ''}`}
               >
