@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
 import { ScrollArea } from './ui/scroll-area'
 import { Send, Users, Crown, LogOut, MapPin } from 'lucide-react'
 import { blink } from '../blink/client'
-import { MeetingRoom, Building, OnlineUser } from '../types'
+import { MeetingRoom, Building, OnlineUser } from '../types/campus'
 
 interface MeetingRoomModalProps {
   isOpen: boolean

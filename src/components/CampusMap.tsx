@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { blink } from '../blink/client'
 import { Building, OnlineUser } from '../types/campus'
 import { Card } from './ui/card'
 import { Badge } from './ui/badge'
 import { Button } from './ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog'
+import { MeetingRoomModal } from './MeetingRoomModal'
 import { ScrollArea } from './ui/scroll-area'
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
 import { Users, MapPin, Crown, GraduationCap, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react'
@@ -36,25 +37,63 @@ export function CampusMap({ currentUser }: CampusMapProps) {
     }, 5000)
 
     return () => clearInterval(interval)
-  }, [])
+  }, [currentUser, loadOnlineUsers])
 
   const loadBuildings = async () => {
     try {
       const result = await blink.db.buildings.list({
         orderBy: { name: 'asc' }
       })
-      setBuildings(result)
+      // Map snake_case to camelCase for frontend
+      const mappedBuildings = result.map((building: any) => ({
+        id: building.id,
+        name: building.name,
+        description: building.description,
+        xPosition: building.x_position,
+        yPosition: building.y_position,
+        capacity: building.capacity,
+        isActive: Number(building.is_active) > 0,
+        buildingType: building.building_type,
+        createdAt: building.created_at
+      }))
+      setBuildings(mappedBuildings)
     } catch (error) {
       console.error('Failed to load buildings:', error)
     }
   }
 
-  const loadOnlineUsers = async () => {
+  const loadOnlineUsers = useCallback(async () => {
     try {
-      // Simulate online users for demo - in real app this would come from real-time presence
-      const mockUsers: OnlineUser[] = [
+      // Get real user locations from database
+      const locations = await blink.db.userLocations.list({
+        where: { 
+          timestamp: { gte: new Date(Date.now() - 30 * 60 * 1000).toISOString() } // Last 30 minutes
+        },
+        orderBy: { timestamp: 'desc' }
+      })
+
+      // Get unique users (latest location per user)
+      const userMap = new Map()
+      locations.forEach((location: any) => {
+        if (!userMap.has(location.user_id)) {
+          userMap.set(location.user_id, location)
+        }
+      })
+
+      // Convert to OnlineUser format with some demo users for better experience
+      const realUsers = Array.from(userMap.values()).map((location: any) => ({
+        id: location.user_id,
+        displayName: location.user_id === currentUser?.id ? 'You' : `User ${location.user_id.slice(-4)}`,
+        userType: 'student',
+        currentBuilding: location.building_id,
+        xPosition: location.x_position,
+        yPosition: location.y_position
+      }))
+
+      // Add some demo users for better experience
+      const demoUsers: OnlineUser[] = [
         {
-          id: 'user1',
+          id: 'demo1',
           displayName: 'Alice Chen',
           userType: 'student',
           currentBuilding: 'doe-library',
@@ -62,7 +101,7 @@ export function CampusMap({ currentUser }: CampusMapProps) {
           yPosition: 250
         },
         {
-          id: 'user2',
+          id: 'demo2',
           displayName: 'Prof. Johnson',
           userType: 'faculty',
           currentBuilding: 'wheeler-hall',
@@ -70,7 +109,7 @@ export function CampusMap({ currentUser }: CampusMapProps) {
           yPosition: 200
         },
         {
-          id: 'user3',
+          id: 'demo3',
           displayName: 'Bob Martinez',
           userType: 'student',
           currentBuilding: 'student-union',
@@ -78,7 +117,7 @@ export function CampusMap({ currentUser }: CampusMapProps) {
           yPosition: 350
         },
         {
-          id: 'user4',
+          id: 'demo4',
           displayName: 'Dr. Smith',
           userType: 'faculty',
           currentBuilding: 'evans-hall',
@@ -86,11 +125,34 @@ export function CampusMap({ currentUser }: CampusMapProps) {
           yPosition: 180
         }
       ]
-      setOnlineUsers(mockUsers)
+
+      // Combine real and demo users
+      const allUsers = [...realUsers, ...demoUsers]
+      setOnlineUsers(allUsers)
     } catch (error) {
       console.error('Failed to load online users:', error)
+      // Fallback to demo users
+      const fallbackUsers: OnlineUser[] = [
+        {
+          id: 'demo1',
+          displayName: 'Alice Chen',
+          userType: 'student',
+          currentBuilding: 'doe-library',
+          xPosition: 350,
+          yPosition: 250
+        },
+        {
+          id: 'demo2',
+          displayName: 'Prof. Johnson',
+          userType: 'faculty',
+          currentBuilding: 'wheeler-hall',
+          xPosition: 300,
+          yPosition: 200
+        }
+      ]
+      setOnlineUsers(fallbackUsers)
     }
-  }
+  }, [currentUser])
 
   const handleBuildingClick = async (building: Building) => {
     setSelectedBuilding(building)
@@ -103,13 +165,13 @@ export function CampusMap({ currentUser }: CampusMapProps) {
 
   const joinBuilding = async (building: Building) => {
     try {
-      // Update user's current location
+      // Update user's current location using snake_case field names
       await blink.db.userLocations.create({
         id: `${currentUser.id}-${Date.now()}`,
-        userId: currentUser.id,
-        buildingId: building.id,
-        xPosition: building.xPosition,
-        yPosition: building.yPosition,
+        user_id: currentUser.id,
+        building_id: building.id,
+        x_position: building.xPosition,
+        y_position: building.yPosition,
         timestamp: new Date().toISOString()
       })
       
