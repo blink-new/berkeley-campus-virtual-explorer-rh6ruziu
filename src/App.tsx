@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { blink } from './blink/client'
 import { OnlineUser } from './types/campus'
+import { UserStatus } from './components/UserStatusSystem'
 import { CampusMap } from './components/CampusMap'
 import { OnlineUsersSidebar } from './components/OnlineUsersSidebar'
 import { CampusHeader } from './components/CampusHeader'
@@ -11,6 +12,7 @@ function App() {
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([])
+  const [userStatus, setUserStatus] = useState<UserStatus>('available')
 
   useEffect(() => {
     // Listen for auth state changes
@@ -151,7 +153,11 @@ function App() {
       <div className="flex h-[calc(100vh-80px)]">
         {/* Map Area */}
         <div className="flex-1">
-          <CampusMap currentUser={currentUser} />
+          <CampusMap 
+            currentUser={currentUser} 
+            userStatus={userStatus}
+            onStatusChange={setUserStatus}
+          />
         </div>
         
         {/* Sidebar */}
@@ -159,6 +165,7 @@ function App() {
           <OnlineUsersSidebar 
             onlineUsers={onlineUsers} 
             currentUser={currentUser}
+            userStatus={userStatus}
           />
         </div>
       </div>

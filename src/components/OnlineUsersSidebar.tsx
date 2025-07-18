@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { OnlineUser } from '../types/campus'
+import { StatusIndicator } from './UserStatusSystem'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
 import { Badge } from './ui/badge'
@@ -10,9 +11,10 @@ import { Crown, GraduationCap, Users, MapPin } from 'lucide-react'
 interface OnlineUsersSidebarProps {
   onlineUsers: OnlineUser[]
   currentUser: any
+  userStatus?: string
 }
 
-export function OnlineUsersSidebar({ onlineUsers, currentUser }: OnlineUsersSidebarProps) {
+export function OnlineUsersSidebar({ onlineUsers, currentUser, userStatus = 'available' }: OnlineUsersSidebarProps) {
   const [students, setStudents] = useState<OnlineUser[]>([])
   const [faculty, setFaculty] = useState<OnlineUser[]>([])
 
@@ -83,6 +85,9 @@ export function OnlineUsersSidebar({ onlineUsers, currentUser }: OnlineUsersSide
                         </AvatarFallback>
                       </Avatar>
                       <Crown className="absolute -top-1 -right-1 h-3 w-3 text-california-gold" />
+                      <div className="absolute -bottom-1 -right-1">
+                        <StatusIndicator status="available" size="sm" />
+                      </div>
                     </div>
                     
                     <div className="flex-1 min-w-0">
@@ -135,6 +140,12 @@ export function OnlineUsersSidebar({ onlineUsers, currentUser }: OnlineUsersSide
                         </AvatarFallback>
                       </Avatar>
                       <GraduationCap className="absolute -top-1 -right-1 h-3 w-3 text-berkeley-blue" />
+                      <div className="absolute -bottom-1 -right-1">
+                        <StatusIndicator 
+                          status={user.id === currentUser?.id ? userStatus as any : 'available'} 
+                          size="sm" 
+                        />
+                      </div>
                     </div>
                     
                     <div className="flex-1 min-w-0">

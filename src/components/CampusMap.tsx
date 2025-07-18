@@ -6,6 +6,9 @@ import { Badge } from './ui/badge'
 import { Button } from './ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog'
 import { MeetingRoomModal } from './MeetingRoomModal'
+import { CampusTourMode } from './CampusTourMode'
+import { CampusEvents } from './CampusEvents'
+import { UserStatusSystem, StatusIndicator, UserStatus } from './UserStatusSystem'
 import { ScrollArea } from './ui/scroll-area'
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
 import { Users, MapPin, Crown, GraduationCap, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react'
@@ -13,9 +16,11 @@ import { cn } from '../lib/utils'
 
 interface CampusMapProps {
   currentUser: any
+  userStatus?: UserStatus
+  onStatusChange?: (status: UserStatus) => void
 }
 
-export function CampusMap({ currentUser }: CampusMapProps) {
+export function CampusMap({ currentUser, userStatus: propUserStatus, onStatusChange: propOnStatusChange }: CampusMapProps) {
   const [buildings, setBuildings] = useState<Building[]>([])
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([])
   const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null)
@@ -25,7 +30,17 @@ export function CampusMap({ currentUser }: CampusMapProps) {
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const [isDragging, setIsDragging] = useState(false)
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
+  const [isTourActive, setIsTourActive] = useState(false)
+  const [userStatus, setUserStatus] = useState<UserStatus>(propUserStatus || 'available')
+  const [statusMessage, setStatusMessage] = useState<string>()
   const mapRef = useRef<HTMLDivElement>(null)
+
+  // Sync with prop changes
+  useEffect(() => {
+    if (propUserStatus) {
+      setUserStatus(propUserStatus)
+    }
+  }, [propUserStatus])
 
   useEffect(() => {
     loadBuildings()
@@ -81,6 +96,83 @@ export function CampusMap({ currentUser }: CampusMapProps) {
           capacity: 200,
           isActive: true,
           buildingType: 'academic',
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: 'sather-gate',
+          name: 'Sather Gate',
+          description: 'Historic entrance to campus',
+          xPosition: 200,
+          yPosition: 400,
+          capacity: 30,
+          isActive: true,
+          buildingType: 'landmark',
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: 'wheeler-hall',
+          name: 'Wheeler Hall',
+          description: 'Humanities and social sciences',
+          xPosition: 300,
+          yPosition: 200,
+          capacity: 100,
+          isActive: true,
+          buildingType: 'academic',
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: 'evans-hall',
+          name: 'Evans Hall',
+          description: 'Mathematics and statistics',
+          xPosition: 450,
+          yPosition: 180,
+          capacity: 80,
+          isActive: true,
+          buildingType: 'academic',
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: 'student-union',
+          name: 'Student Union',
+          description: 'Student activities and dining',
+          xPosition: 320,
+          yPosition: 350,
+          capacity: 150,
+          isActive: true,
+          buildingType: 'student-life',
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: 'sproul-plaza',
+          name: 'Sproul Plaza',
+          description: 'Central gathering space',
+          xPosition: 280,
+          yPosition: 380,
+          capacity: 200,
+          isActive: true,
+          buildingType: 'student-life',
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: 'memorial-stadium',
+          name: 'Memorial Stadium',
+          description: 'Home of Cal Bears football',
+          xPosition: 600,
+          yPosition: 200,
+          capacity: 300,
+          isActive: true,
+          buildingType: 'athletics',
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: 'berkeley-art-museum',
+          name: 'Art Museum',
+          description: 'Berkeley Art Museum and Pacific Film Archive',
+          xPosition: 500,
+          yPosition: 350,
+          capacity: 60,
+          isActive: true,
+          buildingType: 'cultural',
           createdAt: new Date().toISOString()
         }
       ])
@@ -207,6 +299,25 @@ export function CampusMap({ currentUser }: CampusMapProps) {
     setPan({ x: 0, y: 0 })
   }
 
+  const handleNavigateToBuilding = (buildingId: string, x?: number, y?: number) => {
+    const building = buildings.find(b => b.id === buildingId)
+    if (building) {
+      // Animate to building location
+      const targetX = -(building.xPosition - 400) * zoom
+      const targetY = -(building.yPosition - 300) * zoom
+      setPan({ x: targetX, y: targetY })
+      setZoom(1.5) // Zoom in a bit
+    }
+  }
+
+  const handleStatusChange = (status: UserStatus, message?: string) => {
+    setUserStatus(status)
+    setStatusMessage(message)
+    // Update parent component
+    propOnStatusChange?.(status)
+    // Here you would typically update the user's status in the database
+  }
+
   const getBuildingColor = (buildingType: string) => {
     switch (buildingType) {
       case 'landmark': return 'bg-california-gold'
@@ -224,6 +335,29 @@ export function CampusMap({ currentUser }: CampusMapProps) {
 
   return (
     <div className="relative w-full h-full bg-gradient-to-br from-slate-50 to-slate-100 overflow-hidden">
+      {/* Campus Tour Mode */}
+      <CampusTourMode
+        onNavigateToBuilding={handleNavigateToBuilding}
+        isActive={isTourActive}
+        onToggle={() => setIsTourActive(!isTourActive)}
+      />
+
+      {/* Campus Events */}
+      <CampusEvents
+        onNavigateToBuilding={handleNavigateToBuilding}
+        currentUser={currentUser}
+      />
+
+      {/* User Status System */}
+      <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-20">
+        <UserStatusSystem
+          currentStatus={userStatus}
+          customMessage={statusMessage}
+          onStatusChange={handleStatusChange}
+          className="bg-white/90 backdrop-blur-sm border shadow-lg"
+        />
+      </div>
+
       {/* Map Controls */}
       <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
         <Button
@@ -337,32 +471,44 @@ export function CampusMap({ currentUser }: CampusMapProps) {
           })}
 
           {/* User Avatars */}
-          {onlineUsers.map((user) => (
-            <div
-              key={user.id}
-              className="absolute user-avatar z-30"
-              style={{
-                left: (user.xPosition || 0) - 12,
-                top: (user.yPosition || 0) - 35
-              }}
-              title={`${user.displayName} (${user.userType})`}
-            >
-              <div className="relative">
-                <Avatar className="h-6 w-6 border-2 border-white shadow-lg">
-                  <AvatarImage src={user.avatarUrl} />
-                  <AvatarFallback className="text-xs bg-berkeley-blue text-white">
-                    {user.displayName?.charAt(0) || '?'}
-                  </AvatarFallback>
-                </Avatar>
-                {user.userType === 'faculty' && (
-                  <Crown className="absolute -top-1 -right-1 h-3 w-3 text-california-gold" />
-                )}
-                {user.userType === 'student' && (
-                  <GraduationCap className="absolute -top-1 -right-1 h-3 w-3 text-berkeley-blue" />
-                )}
+          {onlineUsers.map((user) => {
+            const isCurrentUser = user.id === (currentUser?.id || 'current-user')
+            const displayStatus = isCurrentUser ? userStatus : 'available' // Demo: other users show as available
+            
+            return (
+              <div
+                key={user.id}
+                className="absolute user-avatar z-30"
+                style={{
+                  left: (user.xPosition || 0) - 12,
+                  top: (user.yPosition || 0) - 35
+                }}
+                title={`${user.displayName} (${user.userType})${isCurrentUser && statusMessage ? ` - ${statusMessage}` : ''}`}
+              >
+                <div className="relative">
+                  <Avatar className="h-6 w-6 border-2 border-white shadow-lg">
+                    <AvatarImage src={user.avatarUrl} />
+                    <AvatarFallback className="text-xs bg-berkeley-blue text-white">
+                      {user.displayName?.charAt(0) || '?'}
+                    </AvatarFallback>
+                  </Avatar>
+                  
+                  {/* User Type Icon */}
+                  {user.userType === 'faculty' && (
+                    <Crown className="absolute -top-1 -right-1 h-3 w-3 text-california-gold" />
+                  )}
+                  {user.userType === 'student' && (
+                    <GraduationCap className="absolute -top-1 -right-1 h-3 w-3 text-berkeley-blue" />
+                  )}
+                  
+                  {/* Status Indicator */}
+                  <div className="absolute -bottom-1 -right-1">
+                    <StatusIndicator status={displayStatus} size="sm" />
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
 
